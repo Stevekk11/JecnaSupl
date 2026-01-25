@@ -1,12 +1,17 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+group = "io.github.stevekk11"
+version = "1.0.0"
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.comVanniktechMavenPublish)
+    id("signing")
 }
 
 kotlin {
@@ -72,6 +77,45 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+
+    coordinates(group.toString(), "JecnaSupl", version.toString())
+
+    pom {
+        name = "JecnaSupl"
+        description = "A library for fetching substitutions from the spsejecna.cz website."
+        inceptionYear = "2026"
+        url = "https://github.com/Stevekk11/JecnaSupl"
+        licenses {
+            license {
+                name = "GNU General Public License v3.0"
+                url = "https://www.gnu.org/licenses/gpl-3.0.txt"
+                distribution = "repo"
+            }
+        }
+        developers {
+            developer {
+                id = "Stevekk11"
+                name = "Stevekk11"
+                url = "https://github.com/Stevekk11"
+            }
+        }
+        scm {
+            url = "https://github.com/Stevekk11/JecnaSupl"
+            connection = "scm:git:git://github.com/Stevekk11/JecnaSupl.git"
+            developerConnection = "scm:git:ssh://git@github.com/Stevekk11/JecnaSupl.git"
+        }
+
+    }
+}
+
+signing {
+    useGpgCmd()
+    sign(publishing.publications)
 }
 
 compose.desktop {
