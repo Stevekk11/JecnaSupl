@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 data class SubstitutionStatus(
     val lastUpdated: String,
     val currentUpdateSchedule: Int,
-    val message: String? = null
+    val message: String? = null //If error occurs, "Endpoint not available"
 )
