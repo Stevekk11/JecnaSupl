@@ -1,47 +1,19 @@
-// import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 group = "io.github.stevekk11"
-version = "1.0.0"
+version = "1.0.1"
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    // Temporarily disabled Android plugin due to version incompatibility
-    // alias(libs.plugins.androidApplication)
-    // Temporarily disabled Compose plugins due to network access issues with dl.google.com
-    // alias(libs.plugins.composeMultiplatform)
-    // alias(libs.plugins.composeCompiler)
-    // alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.comVanniktechMavenPublish)
     id("signing")
 }
 
 kotlin {
-    // Temporarily disabled androidTarget due to Android plugin version incompatibility
-    // androidTarget {
-    //     compilerOptions {
-    //         jvmTarget.set(JvmTarget.JVM_11)
-    //     }
-    // }
-    
+
     jvm()
     
     sourceSets {
-        // androidMain.dependencies {
-        //     implementation(libs.compose.uiToolingPreview)
-        //     implementation(libs.androidx.activity.compose)
-        // }
         commonMain.dependencies {
-            // Temporarily commented out compose dependencies due to network access issues with dl.google.com
-            // implementation(libs.compose.runtime)
-            // implementation(libs.compose.foundation)
-            // implementation(libs.compose.material3)
-            // implementation(libs.compose.ui)
-            // implementation(libs.compose.components.resources)
-            // implementation(libs.compose.uiToolingPreview)
-            // implementation(libs.androidx.lifecycle.viewmodelCompose)
-            // implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("io.ktor:ktor-client-core:2.3.12")
             implementation("io.ktor:ktor-client-cio:2.3.12")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
@@ -50,44 +22,11 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmMain.dependencies {
-            // Temporarily commented out compose dependencies due to network access issues
-            // implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
         }
     }
 }
 
-// Temporarily disabled Android configuration due to plugin version incompatibility
-// android {
-//     namespace = "io.github.stevekk11"
-//     compileSdk = libs.versions.android.compileSdk.get().toInt()
-// 
-//     defaultConfig {
-//         applicationId = "io.github.stevekk11"
-//         minSdk = libs.versions.android.minSdk.get().toInt()
-//         targetSdk = libs.versions.android.targetSdk.get().toInt()
-//         versionCode = 1
-//         versionName = "1.0"
-//     }
-//     packaging {
-//         resources {
-//             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-//         }
-//     }
-//     buildTypes {
-//         getByName("release") {
-//             isMinifyEnabled = false
-//         }
-//     }
-//     compileOptions {
-//         sourceCompatibility = JavaVersion.VERSION_11
-//         targetCompatibility = JavaVersion.VERSION_11
-//     }
-// }
-// 
-// dependencies {
-//     debugImplementation(libs.compose.uiTooling)
-// }
 
 mavenPublishing {
     publishToMavenCentral()
@@ -128,15 +67,3 @@ signing {
     sign(publishing.publications)
 }
 
-// Temporarily disabled Compose desktop configuration due to network access issues
-// compose.desktop {
-//     application {
-//         mainClass = "io.github.stevekk11.MainKt"
-// 
-//         nativeDistributions {
-//             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-//             packageName = "io.github.stevekk11"
-//             packageVersion = "1.0.0"
-//         }
-//     }
-// }

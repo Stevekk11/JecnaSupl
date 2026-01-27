@@ -71,6 +71,7 @@ object SubstitutionParser {
     }
 
     /**
+     * HOLY raškus PARSER STARTS HERE ⛪🪽DO NOT CONTINUE TO KEEP YOUR SANITY⛪
      * Core Parsing Logic
      * Strategy:
      * 1. Extract Flags (odpadá, posun, etc.)
