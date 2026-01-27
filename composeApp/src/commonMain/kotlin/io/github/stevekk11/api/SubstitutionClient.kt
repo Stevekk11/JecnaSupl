@@ -1,10 +1,11 @@
 package io.github.stevekk11.api
 
+import io.github.stevekk11.dtos.DailySchedule
 import io.github.stevekk11.dtos.LabeledTeacherAbsences
+import io.github.stevekk11.dtos.ScheduleWithAbsences
 import io.github.stevekk11.dtos.SubstitutedLesson
 import io.github.stevekk11.dtos.SubstitutionStatus
 import io.github.stevekk11.parser.SubstitutionParser
-import io.github.stevekk11.parser.ScheduleWithAbsences
 
 /**
  * Client for fetching and parsing substitution data from SPŠE Ječná API.
@@ -97,8 +98,25 @@ class SubstitutionClient
      * Get the complete parsed schedule with all data.
      * @return Complete schedule with daily schedules and status
      */
-    suspend fun getCompleteSchedule(): ScheduleWithAbsences {
+    suspend fun getCompleteSchedule(): ScheduleWithAbsences
+    {
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         return SubstitutionParser.parseCompleteSchedule(json)
+    }
+
+    /**
+     * Parse daily substitutions for a specific class.
+     * @param classSymbol The class symbol to filter (e.g., 'C2b', 'A4')
+     * @return List of daily schedules containing only substitutions for the specified class
+     */
+    suspend fun parseDailySubstitutionsForClass(classSymbol: String): List<DailySchedule> {
+        val json = Fetcher.fetchJsonFromApi(baseUrl)
+        val schedule = SubstitutionParser.parseCompleteSchedule(json)
+
+        // Filter daily schedules to only include substitutions for the specified class
+        return schedule.dailySchedules.map { day ->
+            val filteredSubs = day.classSubs.filterKeys { it == classSymbol }
+            day.copy(classSubs = filteredSubs)
+        }.filter { it.classSubs.isNotEmpty() }  // Only include days with substitutions for the class
     }
 }

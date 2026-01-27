@@ -7,10 +7,7 @@ object SubstitutionParser {
 
     // --- Regex Constants ---
     private val PARENTHESES_REGEX = """\(([A-Z][a-z]?)\)""".toRegex() // Matches (Su), (M)
-    private val TEACHER_CODE_REGEX = """\b[A-Z][a-z]\b""".toRegex() // Strict 2-letter code
-    private val ROOM_REGEX = """(?:uč\.?\s*)?(\d+[a-z]?|TV|TH)(?=\s|$)""".toRegex(RegexOption.IGNORE_CASE)
     private val GROUP_REGEX = """\b\d+/\d+\b""".toRegex() // 1/2, 2/2
-    private val POSUN_TARGET_REGEX = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?|[^\s]+)""".toRegex(RegexOption.IGNORE_CASE)
 
     fun parseSubstitutionJson(jsonString: String): SubstitutionResponse {
         val json = Json { ignoreUnknownKeys = true }
@@ -83,166 +80,129 @@ object SubstitutionParser {
      * 5. Whatever remains is Subject (if short) or Note (if long).
      */
     fun parseSubstitutionText(text: String, hour: Int): SubstitutedLesson {
-        // Normalize spaces
-        var workingText = text.trim().replace(Regex("\\s+"), " ")
-
+        // Clean up newlines and extra spaces immediately
+        var workingText = text.replace("\n", " ").trim().replace(Regex("\\s+"), " ")
+        val substitutionText = workingText
         var group: String? = null
         var subject: String? = null
         var room: String? = null
         var substitutingTeacher: String? = null
         var missingTeacher: String? = null
-
-        // Status Flags
-        val isDropped = workingText.containsOneOf("odpadá", "0", "odučeno") ||
-                (workingText.contains("oběd", true) && !workingText.contains("(")) // oběd is dropped only if not a subject with sub
-        val isJoined = workingText.containsOneOf("spoj", "joined")
-        val isSeparated = workingText.containsOneOf("rozděl")
-        val roomChanged = workingText.containsOneOf("změna", "výměna")
-        val isShifted = workingText.contains("posun", ignoreCase = true)
-
+        var isDropped = false
+        var isJoined = false
+        var isSeparated = false
+        var roomChanged = false
+        var isShifted = false
         var shiftTarget: String? = null
 
-        // --- Step 1: Handle Shift (Posun) specifics ---
-        if (isShifted) {
-            val match = POSUN_TARGET_REGEX.find(workingText)
-            if (match != null) {
-                shiftTarget = match.groupValues[1]
-                // Remove the "posun za X" text so it doesn't interfere
-                workingText = workingText.replace(match.value, "").trim()
-            } else {
-                // Just remove the word posun
-                workingText = workingText.replace("posun", "", true).trim()
-            }
-        }
-
-        // --- Step 2: The Anchor (Missing Teacher) ---
-        // We look for (XX). If found, we capture XX as missing.
-        // CRITICAL: We check the text immediately *before* the parentheses for the substituting teacher.
+        // 1. ANCHOR: Extract Missing Teacher (XX)
         val parenthesesMatch = PARENTHESES_REGEX.find(workingText)
         if (parenthesesMatch != null) {
             missingTeacher = parenthesesMatch.groupValues[1]
+            workingText = workingText.replace(parenthesesMatch.value, " ").trim()
+        }
 
-            // Check text before the match for Substituting Teacher
-            val rangeBefore = workingText.substring(0, parenthesesMatch.range.first).trim()
-            val tokensBefore = rangeBefore.split(" ")
-            val lastToken = tokensBefore.lastOrNull()
+        // 2. FLAGS: Extract status before they get eaten by Subject/Note
+        isDropped = workingText.containsOneOf("odpadá", "0", "odučeno") ||
+                (workingText.contains("oběd", true) && !text.contains("("))
+        isJoined = workingText.containsOneOf("spoj", "joined")
+        isSeparated = workingText.containsOneOf("rozděl")
+        roomChanged = workingText.containsOneOf("změna", "výměna")
+        isShifted = workingText.contains("posun", ignoreCase = true)
 
-            if (lastToken != null && lastToken.matches(TEACHER_CODE_REGEX) && lastToken != "TV") {
-                // Found the sub teacher anchored to the missing teacher
-                substitutingTeacher = lastToken
-                // Remove both from working text
-                workingText = workingText.replace("$substitutingTeacher ${parenthesesMatch.value}", "")
-                workingText = workingText.replace("$substitutingTeacher${parenthesesMatch.value}", "") // Case without space
+        // 3. SHIFT TARGET: Specific hour extraction
+        val shiftMatch = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?)""".toRegex(RegexOption.IGNORE_CASE).find(workingText)
+        if (shiftMatch != null) {
+            shiftTarget = shiftMatch.groupValues[1]
+            workingText = workingText.replace(shiftMatch.value, "").trim()
+        }
+
+        // 4. TOKENIZATION & CLASSIFICATION
+        // Split by space and remove comma/plus noise
+        val rawTokens = workingText.split(" ")
+            .map { it.replace(",", "").trim() }
+            .filter { it.isNotEmpty() && it != "+" }
+
+        val remainingTokens = mutableListOf<String>()
+
+        for (token in rawTokens) {
+            when {
+                // Group (1/2, 2/2)
+                token.matches(GROUP_REGEX) -> group = token
+
+                // Room (18ab, 15, uč. 8, D6, L2)
+                // Rooms usually start with a digit OR are specific codes like D6/L2
+                token.matches("""(?:uč\.?\s*)?\d+[a-z]{0,2}""".toRegex(RegexOption.IGNORE_CASE)) ||
+                        token.matches("""[A-Z]\d+""".toRegex()) -> {
+                    if (room == null) room = token.replace("uč.", "").trim()
+                    else remainingTokens.add(token)
+                }
+
+                // Teacher (2-letter Code)
+                // If it's 2 letters and we don't have a sub teacher yet
+                token.matches("""^[A-Z][a-z]$""".toRegex()) -> {
+                    // Check if it's the subject TV/CH
+                    val isSubjectProbable = token.uppercase() in listOf("TV", "CH", "AJ", "NJ", "MD")
+                    if (substitutingTeacher == null && (!isSubjectProbable || subject != null)) {
+                        substitutingTeacher = token
+                    } else if (subject == null && isSubjectProbable) {
+                        subject = token
+                    } else {
+                        remainingTokens.add(token)
+                    }
+                }
+
+                // Subject (Usually uppercase or first token)
+                subject == null && token.length <= 4 -> subject = token
+
+
+                // Everything else is a note
+                else -> {
+                    val cleanedToken = token.lowercase()
+                    if (cleanedToken !in listOf("odpadá", "posun", "spoj.", "spoj", "změna", "úklid")) {
+                        remainingTokens.add(token)
+                    }
+                }
             }
-
-            // Always remove the (Missing) part
-            workingText = workingText.replace(parenthesesMatch.value, "").trim()
         }
 
-        // --- Step 3: Extract Room ---
-        // We handle "uč 8", "uč.8", "14a", "TV"
-        val roomMatch = ROOM_REGEX.find(workingText)
-        if (roomMatch != null) {
-            room = roomMatch.groupValues[1]
-            workingText = workingText.replace(roomMatch.value, "").trim()
+        // Final cleanup for Subject/Note
+        // If subject is "posun" or "spoj", it's not a subject.
+        if (subject?.containsOneOf("posun", "spoj", "změna", "uč") == true) subject = null
+
+        var note = remainingTokens.joinToString(" ").trim()
+
+        // 1. The TV Rule: If subject is TV, room must be TV (and vice versa if room is TV)
+        if (subject?.uppercase() == "TV") {
+            room = "TV"
+        } else if (room?.uppercase() == "TV") {
+            // If the room is the gym, the subject is almost certainly TV
+            if (subject == null) subject = "TV"
+        }
+        if (room == "0") {
+            room = null
+            isDropped = true
+        }
+        if (subject == "+" || subject?.lowercase() == "uč") {
+            subject = null
+        }
+        if (note.trim() == "+" || note.isBlank() == true) {
+            note = ""
         }
 
-        // --- Step 4: Extract Group (1/2, 2/2 etc) ---
-        val groupMatch = GROUP_REGEX.find(workingText)
-        if (groupMatch != null) {
-            group = groupMatch.value
-            workingText = workingText.replace(group, "").trim()
-        }
 
-        // --- Step 5: Clean up keywords ---
-        // Remove status words so they don't get parsed as Subject/Note
-        val keywordsToRemove = listOf(
-            "odpadá", "oběd", "spoj.", "spoj", "rozděl.", "rozděl",
-            "změna", "výměna", "úklid", "supl.", "volno", "dupl.", "0", "odučeno"
-        )
-        keywordsToRemove.forEach { kw ->
-            workingText = workingText.replace(kw, "", ignoreCase = true)
-        }
-
-        // --- Step 6: Analyze Remaining Tokens ---
-        // What is left is usually: [Subject] [Note] OR just [Note] OR [Subject]
-        val tokens = workingText.split(" ").filter { it.isNotBlank() }
-
-        if (tokens.isNotEmpty()) {
-            val first = tokens[0]
-
-            // If we haven't found a sub teacher yet, and there is a lone 2-letter code,
-            // it is usually the Subject (e.g., "Tv", "Ch", "Aj").
-            // Exception: If the text was just "Kn" and we had no missing teacher logic,
-            // it might be a teacher. But we handled the main teacher case in Step 2.
-
-            if (first.length <= 4 && first[0].isUpperCase()) {
-                subject = first
-            }
-
-            // If there are more tokens, or if the first wasn't a subject, it's a note
-            val noteTokens = if (subject != null) tokens.drop(1) else tokens
-            val noteText = noteTokens.joinToString(" ")
-
-            // Clean up note (remove punctuation if it's just a dot)
-            val finalNote = if (noteText.length > 1) noteText else null
-
-            return SubstitutedLesson(
-                hour = hour,
-                group = group,
-                subject = subject,
-                room = room,
-                substitutingTeacher = substitutingTeacher,
-                missingTeacher = missingTeacher,
-                isDropped = isDropped,
-                isJoined = isJoined,
-                isSeparated = isSeparated,
-                roomChanged = roomChanged,
-                isShifted = isShifted,
-                shiftTarget = shiftTarget,
-                note = finalNote
-            )
-        }
 
         return SubstitutedLesson(
-            hour = hour,
-            group = group,
-            subject = subject,
-            room = room,
-            substitutingTeacher = substitutingTeacher,
-            missingTeacher = missingTeacher,
-            isDropped = isDropped,
-            isJoined = isJoined,
-            isSeparated = isSeparated,
-            roomChanged = roomChanged,
-            isShifted = isShifted,
-            shiftTarget = shiftTarget,
-            note = null
+            hour = hour, group = group, subject = subject, room = room,
+            substitutingTeacher = substitutingTeacher, missingTeacher = missingTeacher,
+            isDropped = isDropped, isJoined = isJoined, isSeparated = isSeparated,
+            roomChanged = roomChanged, isShifted = isShifted, shiftTarget = shiftTarget,
+            note = note.ifBlank { null }, originalText = substitutionText
         )
     }
 
-    // Helper extension
     private fun String.containsOneOf(vararg keywords: String): Boolean {
         return keywords.any { this.contains(it, ignoreCase = true) }
     }
 }
 
-/**
- * Represents a single day's substitution schedule with all classes and absences.
- */
-@kotlinx.serialization.Serializable
-data class DailySchedule(
-    val date: String,
-    val isPriprava: Boolean,
-    val classSubs: Map<String, List<SubstitutedLesson>>,
-    val absences: List<TeacherAbsence>
-)
-
-/**
- * Complete schedule with daily schedules and status information.
- */
-@kotlinx.serialization.Serializable
-data class ScheduleWithAbsences(
-    val dailySchedules: List<DailySchedule>,
-    val status: SubstitutionStatus
-)

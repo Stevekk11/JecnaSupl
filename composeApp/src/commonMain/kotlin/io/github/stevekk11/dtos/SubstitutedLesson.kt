@@ -16,5 +16,6 @@ data class SubstitutedLesson(
     val roomChanged: Boolean = false,
     val isShifted: Boolean = false,
     val shiftTarget: String? = null,
-    val note: String? = null
+    val note: String? = null,
+    val originalText: String? = null,
 )
