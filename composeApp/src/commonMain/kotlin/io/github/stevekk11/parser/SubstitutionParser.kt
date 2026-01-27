@@ -129,8 +129,7 @@ object SubstitutionParser {
         }
 
         // 2. FLAGS: Extract status before they get eaten by Subject/Note
-        isDropped = workingText.containsOneOf("odpadá", "0", "odučeno") ||
-                (workingText.contains("oběd", true) && !text.contains("("))
+        isDropped = workingText.containsOneOf("odpadá", "0", "odučeno", "oběd")
         isJoined = workingText.containsOneOf("spoj")
         isSeparated = workingText.containsOneOf("rozděl")
         roomChanged = workingText.containsOneOf("změna", "výměna")
@@ -204,14 +203,14 @@ object SubstitutionParser {
             // If the room is the gym, the subject is almost certainly TV
             if (subject == null) subject = "TV"
         }
-        if (room == "0") {
+        if (room == "0" || room == "oběd") {
             room = null
             isDropped = true
         }
-        if (subject == "+" || subject?.lowercase() == "uč") {
+        if (subject == "+" || subject?.lowercase() == "uč" || subject?.lowercase() == "oběd") {
             subject = null
         }
-        if (note.trim() == "+" || note.isBlank() == true) {
+        if (note.trim() == "+" || note.isBlank()) {
             note = ""
         }
 
