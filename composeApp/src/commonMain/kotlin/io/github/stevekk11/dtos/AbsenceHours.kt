@@ -8,8 +8,8 @@ import kotlinx.serialization.Serializable
  * - Range: from/to set (e.g. 2-4)
  * - Single: only [from] set (e.g. 3)
  */
-@Serializable
+@Serializable(with = AbsenceHoursSerializer::class)
 data class AbsenceHours(
-    val from: Int,
+    val from: Int?,
     val to: Int? = null
 )
