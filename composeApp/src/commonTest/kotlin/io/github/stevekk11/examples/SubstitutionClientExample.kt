@@ -102,16 +102,20 @@ class SubstitutionClientExample {
      */
     @Test
     fun testUrlMustContainJecnarozvrh() {
-        val client = SubstitutionClient()
-        
         // These should all work
-        client.setEndpointUrl("http://example.com/jecnarozvrh")
-        client.setEndpointUrl("https://jecnarozvrh.example.com")
-        client.setEndpointUrl("https://api.jecnarozvrh.cz/v1")
+        val client1 = SubstitutionClient()
+        client1.setEndpointUrl("http://example.com/jecnarozvrh")
+        
+        val client2 = SubstitutionClient()
+        client2.setEndpointUrl("https://jecnarozvrh.example.com")
+        
+        val client3 = SubstitutionClient()
+        client3.setEndpointUrl("https://api.jecnarozvrh.cz/v1")
         
         // This should fail
+        val client4 = SubstitutionClient()
         assertFailsWith<IllegalArgumentException> {
-            client.setEndpointUrl("https://example.com/api/v1")
+            client4.setEndpointUrl("https://example.com/api/v1")
         }
     }
 }
