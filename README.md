@@ -1,6 +1,7 @@
 # JecnaSupl 📅
 
 Knihovna pro snadné získávání dat o suplování ze systému SPŠE Ječná. Už žádné složité parsování webu, stačí pár řádků kódu a máš vše, co potřebuješ.
+API pro suplování vytvořil Jakub Žitník - https://jzitnik.dev/. Dokumentace API - https://jecnarozvrh.jzitnik.dev/
 
 ## Co to umí?
 -  Získat suplování pro konkrétní třídu.
