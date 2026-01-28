@@ -41,6 +41,11 @@ object SubstitutionParser {
         return ScheduleWithAbsences(dailySchedules, response.status)
     }
 
+    fun parseStatus(jsonString: String): SubstitutionStatus {
+        val response = parseSubstitutionJson(jsonString)
+        return response.status
+    }
+
     fun parseDaySchedule(daySchedule: Map<String, JsonElement>): Map<String, List<SubstitutedLesson>> {
         val result = mutableMapOf<String, List<SubstitutedLesson>>()
 

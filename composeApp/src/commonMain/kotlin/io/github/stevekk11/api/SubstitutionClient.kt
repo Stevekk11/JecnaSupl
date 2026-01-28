@@ -46,7 +46,9 @@ class SubstitutionClient
      * Get teacher absences for all days in the schedule.
      * @return List of teacher absences labeled by date
      */
-    suspend fun getTeacherAbsences(): List<LabeledTeacherAbsences> {
+    suspend fun getTeacherAbsences(): List<LabeledTeacherAbsences>?
+    {
+        if (getSubstitutionsStatus().isOffline == true) return null
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         val schedule = SubstitutionParser.parseCompleteSchedule(json)
 
@@ -64,6 +66,7 @@ class SubstitutionClient
      * @return Teacher absences for the specified date, or null if not found
      */
     suspend fun getTeacherAbsences(date: LocalDate): LabeledTeacherAbsences? {
+        if (getSubstitutionsStatus().isOffline == true) return null
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         val schedule = SubstitutionParser.parseCompleteSchedule(json)
 
@@ -79,7 +82,9 @@ class SubstitutionClient
      * Get raw JSON data from the substitution API.
      * @return Raw JSON string
      */
-    suspend fun getRawSubstitutionData(): String {
+    suspend fun getRawSubstitutionData(): String?
+    {
+        if (getSubstitutionsStatus().isOffline == true) return null
         return Fetcher.fetchJsonFromApi(baseUrl)
     }
 
@@ -87,7 +92,13 @@ class SubstitutionClient
      * Get substitutions for the configured class symbol.
      * @return List of substituted lessons for the class across all days - unlabeled days
      */
-    suspend fun getSubstitutions(): List<SubstitutedLesson> {
+    suspend fun getSubstitutions(): List<SubstitutedLesson>?
+    {
+        if (classSymbol.isBlank())
+        {
+            throw IllegalArgumentException("Class symbol must not be empty.")
+        }
+        if (getSubstitutionsStatus().isOffline == true) return null
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         val schedule = SubstitutionParser.parseCompleteSchedule(json)
 
@@ -107,17 +118,23 @@ class SubstitutionClient
      * @return Status object with last updated time and update schedule
      */
     suspend fun getSubstitutionsStatus(): SubstitutionStatus {
-        val json = Fetcher.fetchJsonFromApi(baseUrl)
-        val schedule = SubstitutionParser.parseCompleteSchedule(json)
-        return schedule.status
+        try
+        {
+            val json = Fetcher.fetchJsonFromApi(baseUrl)
+            val status = SubstitutionParser.parseStatus(json)
+            return status
+        } catch (_: Exception) {
+            return SubstitutionStatus("n/a", 0, true)
+        }
     }
 
     /**
      * Get the complete parsed schedule with all data.
      * @return Complete schedule with daily schedules and status
      */
-    suspend fun getCompleteSchedule(): ScheduleWithAbsences
+    suspend fun getCompleteSchedule(): ScheduleWithAbsences?
     {
+        if (getSubstitutionsStatus().isOffline == true) return null
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         return SubstitutionParser.parseCompleteSchedule(json)
     }
@@ -126,7 +143,13 @@ class SubstitutionClient
      * Parse daily substitutions for the configured class symbol.
      * @return List of daily schedules for the specified class
      */
-    suspend fun getDailySubstitutions(): List<DailySchedule> {
+    suspend fun getDailySubstitutions(): List<DailySchedule>?
+    {
+        if (classSymbol.isBlank())
+        {
+            throw IllegalArgumentException("Class symbol must not be empty.")
+        }
+        if (getSubstitutionsStatus().isOffline == true) return null
         val json = Fetcher.fetchJsonFromApi(baseUrl)
         val schedule = SubstitutionParser.parseCompleteSchedule(json)
         return schedule.dailySchedules.map { day ->

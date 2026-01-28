@@ -16,7 +16,7 @@ data class TeacherAbsence(
      */
     val original: String? = null,
     /**
-     * Optional user-facing message (e.g. when the substitution endpoint is down).
+     * Optional user-facing isOffline (e.g. when the substitution endpoint is down).
      */
     val message: String? = null
 )

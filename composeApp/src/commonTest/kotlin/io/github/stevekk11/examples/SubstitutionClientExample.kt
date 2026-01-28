@@ -26,8 +26,11 @@ class SubstitutionClientExample {
         val substitutions = client.getSubstitutions()
 
         println("Substitutions for class:")
-        for (substitution in substitutions) {
-            println(substitution)
+        if (substitutions != null)
+        {
+            for (substitution in substitutions) {
+                println(substitution)
+            }
         }
     }
 
@@ -41,7 +44,7 @@ class SubstitutionClientExample {
         val absences = client.getTeacherAbsences()
 
         println("Teacher Absences:")
-        absences.forEach { dayAbsences ->
+        absences?.forEach { dayAbsences ->
             println("\nDate: ${dayAbsences.date}")
             dayAbsences.absences.forEach { absence ->
                 println("  ${absence.teacher ?: "Unknown"} (${absence.teacherCode})")
@@ -69,8 +72,8 @@ class SubstitutionClientExample {
         println("  Last Updated: ${status.lastUpdated}")
         println("  Update Schedule: Every ${status.currentUpdateSchedule} minutes")
 
-        if (status.message != null) {
-            println("  Message: ${status.message}")
+        if (status.isOffline == true) {
+            println("Endpoint na suplování není dostupný!")
         }
     }
 
@@ -84,9 +87,9 @@ class SubstitutionClientExample {
         val schedule = client.getCompleteSchedule()
 
         println("Complete Schedule:")
-        println("Last Updated: ${schedule.status.lastUpdated}\n")
+        println("Last Updated: ${schedule?.status?.lastUpdated}\n")
 
-        schedule.dailySchedules.forEach { day ->
+        schedule?.dailySchedules?.forEach { day ->
             println("=== ${day.date} ${if (day.isPriprava) "(Příprava)" else ""} ===")
 
             // Show teacher absences
@@ -161,7 +164,7 @@ class SubstitutionClientExample {
 
         try {
             val substitutions = client.getSubstitutions()
-            println("Successfully fetched ${substitutions.size} substitutions")
+            println("Successfully fetched ${substitutions?.size} substitutions")
         } catch (e: Exception) {
             println("Failed to fetch substitutions: ${e.message}")
         }
@@ -178,7 +181,7 @@ class SubstitutionClientExample {
         val dailySchedules = client.getDailySubstitutions()
 
         println("Daily substitutions for class:")
-        dailySchedules.forEach { day ->
+        dailySchedules?.forEach { day ->
             println("\nDate: ${day.date} ${if (day.isPriprava) "(Příprava)" else ""}")
             day.classSubs.forEach {
                 it.value.forEach {
