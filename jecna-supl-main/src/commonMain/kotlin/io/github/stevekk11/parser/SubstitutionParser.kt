@@ -9,6 +9,12 @@ object SubstitutionParser {
     private val PARENTHESES_REGEX = """\(([A-Z][a-z]?)(?:,\s*([A-Z][a-z]?))?\)""".toRegex()
     // Matches (Su), (M)
     private val GROUP_REGEX = """\b\d+/\d+\b""".toRegex() // 1/2, 2/2
+    private val WHITESPACE_REGEX = """\s+""".toRegex() // Multiple whitespace chars
+    private val SHIFT_TARGET_REGEX = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?)""".toRegex(RegexOption.IGNORE_CASE) // Matches "posun za 5. h."
+    private val TOKENIZATION_SPLITTER_REGEX = """[\s,]+""".toRegex() // Splits by spaces and commas
+    private val ROOM_NUMBER_REGEX = """(?:uč\.?\s*)?\d+[a-z]{0,2}""".toRegex(RegexOption.IGNORE_CASE) // Matches room numbers like "18ab", "uč. 8"
+    private val ROOM_CODE_REGEX = """[A-Z]\d+""".toRegex() // Matches room codes like "D6", "L2"
+    private val TEACHER_CODE_REGEX = """^[A-Z][a-z]$""".toRegex() // Matches 2-letter teacher codes
 
     fun parseSubstitutionJson(jsonString: String): SubstitutionResponse {
         val json = Json { ignoreUnknownKeys = true }
@@ -113,7 +119,7 @@ object SubstitutionParser {
 
     private fun parseSingleSubstitutionText(text: String, hour: Int): SubstitutedLesson {
 
-        var workingText = text.replace("\n", " ").trim().replace(Regex("\\s+"), " ")
+        var workingText = text.replace("\n", " ").trim().replace(WHITESPACE_REGEX, " ")
         val substitutionText = workingText
         var group: String? = null
         var subject: String? = null
@@ -144,7 +150,7 @@ object SubstitutionParser {
         isShifted = workingText.contains("posun", ignoreCase = true)
 
         // 3. SHIFT TARGET: Specific hour extraction
-        val shiftMatch = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?)""".toRegex(RegexOption.IGNORE_CASE).find(workingText)
+        val shiftMatch = SHIFT_TARGET_REGEX.find(workingText)
         if (shiftMatch != null) {
             shiftTarget = shiftMatch.groupValues[1]
             workingText = workingText.replace(shiftMatch.value, "").trim()
@@ -152,7 +158,7 @@ object SubstitutionParser {
 
         // 4. TOKENIZATION & CLASSIFICATION
         // Split by space and comma, remove plus noise
-        val rawTokens = workingText.split(Regex("[\\s,]+"))
+        val rawTokens = workingText.split(TOKENIZATION_SPLITTER_REGEX)
             .filter { it.isNotEmpty() && it != "+" }
 
         val remainingTokens = mutableListOf<String>()
@@ -166,14 +172,14 @@ object SubstitutionParser {
 
                 // Room (18ab, 15, uč. 8, D6, L2)
                 // Rooms usually start with a digit OR are specific codes like D6/L2
-                token.matches("""(?:uč\.?\s*)?\d+[a-z]{0,2}""".toRegex(RegexOption.IGNORE_CASE)) ||
-                        token.matches("""[A-Z]\d+""".toRegex()) -> {
+                token.matches(ROOM_NUMBER_REGEX) ||
+                        token.matches(ROOM_CODE_REGEX) -> {
                     rooms.add(token.replace("uč.", "").trim())
                 }
 
                 // Teacher (2-letter Code)
                 // If it's 2 letters
-                token.matches("""^[A-Z][a-z]$""".toRegex()) -> {
+                token.matches(TEACHER_CODE_REGEX) -> {
                     if (subject == null) {
                         subject = token
                     } else {
