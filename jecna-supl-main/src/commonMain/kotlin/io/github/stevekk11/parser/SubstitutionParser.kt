@@ -9,12 +9,12 @@ object SubstitutionParser {
     private val PARENTHESES_REGEX = """\(([A-Z][a-z]?)(?:,\s*([A-Z][a-z]?))?\)""".toRegex()
     // Matches (Su), (M)
     private val GROUP_REGEX = """\b\d+/\d+\b""".toRegex() // 1/2, 2/2
-    private val WHITESPACE_REGEX = Regex("\\s+")
-    private val SHIFT_TARGET_REGEX = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?)""".toRegex(RegexOption.IGNORE_CASE)
-    private val TOKENIZATION_SPLITTER_REGEX = Regex("[\\s,]+")
-    private val ROOM_NUMBER_REGEX = """(?:uč\.?\s*)?\d+[a-z]{0,2}""".toRegex(RegexOption.IGNORE_CASE)
-    private val ROOM_CODE_REGEX = """[A-Z]\d+""".toRegex()
-    private val TEACHER_CODE_REGEX = """^[A-Z][a-z]$""".toRegex()
+    private val WHITESPACE_REGEX = """\s+""".toRegex() // Multiple whitespace chars
+    private val SHIFT_TARGET_REGEX = """posun\s+(?:za|z)?\s*(\d+\.?\s*h\.?)""".toRegex(RegexOption.IGNORE_CASE) // Matches "posun za 5. h."
+    private val TOKENIZATION_SPLITTER_REGEX = """[\s,]+""".toRegex() // Splits by spaces and commas
+    private val ROOM_NUMBER_REGEX = """(?:uč\.?\s*)?\d+[a-z]{0,2}""".toRegex(RegexOption.IGNORE_CASE) // Matches room numbers like "18ab", "uč. 8"
+    private val ROOM_CODE_REGEX = """[A-Z]\d+""".toRegex() // Matches room codes like "D6", "L2"
+    private val TEACHER_CODE_REGEX = """^[A-Z][a-z]$""".toRegex() // Matches 2-letter teacher codes
 
     fun parseSubstitutionJson(jsonString: String): SubstitutionResponse {
         val json = Json { ignoreUnknownKeys = true }
