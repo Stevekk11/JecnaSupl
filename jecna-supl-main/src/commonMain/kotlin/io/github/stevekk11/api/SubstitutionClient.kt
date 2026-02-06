@@ -79,6 +79,13 @@ class SubstitutionClient
     }
 
     /**
+     * Get an example substitution from text for testing the parser.
+     */
+    fun getExampleSubstitution(text: String) : String {
+        return SubstitutionParser.parseExampleSubstitutionText(text).toString()
+    }
+
+    /**
      * Get raw JSON data from the substitution API.
      * @return Raw JSON string
      */

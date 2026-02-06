@@ -116,8 +116,12 @@ object SubstitutionParser {
         }
     }
 
-    private fun parseSingleSubstitutionText(text: String, hour: Int): SubstitutedLesson {
+    fun parseExampleSubstitutionText(text: String): List<SubstitutedLesson> {
+        val hour = 1
+        return parseSubstitutionText(text, hour)
+    }
 
+    private fun parseSingleSubstitutionText(text: String, hour: Int): SubstitutedLesson {
         var workingText = text.replace("\n", " ").trim().replace(WHITESPACE_REGEX, " ")
         val substitutionText = workingText
         var group: String? = null

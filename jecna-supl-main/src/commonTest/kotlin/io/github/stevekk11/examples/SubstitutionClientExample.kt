@@ -14,13 +14,19 @@ class SubstitutionClientExample {
     /**
      * Basic usage: Fetch substitutions for a specific class.
      */
+    @Test
+    fun testExampleText(){
+        val client = SubstitutionClient()
+        val lesson = client.getExampleSubstitution("1/2 A 6 Ju(Pa), 2/2 A 29 Km(Ry)")
+        println(lesson)
+    }
 
     suspend fun basicUsage() {
         val client = SubstitutionClient()
 
         // Configure the client
-        client.setEndpointUrl("https://jecnarozvrh.jzitnik.dev/versioned/v1")
-        client.setClassSymbol("C4c")
+        client.setEndpointUrl("https://jecnarozvrh.jzitnik.dev/versioned/v2")
+        client.setClassSymbol("C2b")
 
         // Get substitutions for the configured class
         val substitutions = client.getSubstitutions()
